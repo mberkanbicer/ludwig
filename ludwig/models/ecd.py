@@ -1,7 +1,7 @@
 import copy
 import logging
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, NamedTuple
 
 import numpy as np
 import torch
@@ -89,9 +89,16 @@ class ECD(LudwigModule):
         }
         return inputs, targets
 
-    def save_savedmodel(self, save_path):
-        keras_model = self.get_connected_model(training=False)
-        keras_model.save(save_path)
+    def save_torchscript(self, save_path):
+        # traced = torch.jit.trace(
+        #     self, self.get_model_inputs(training=False))
+        traced = torch.jit.trace(
+            self, self.get_model_inputs(training=False), strict=False)
+        traced.save(save_path)
+
+    @property
+    def input_shape(self):
+        return torch.Size([1, 1])
 
     def forward(
             self,
@@ -156,8 +163,7 @@ class ECD(LudwigModule):
 
             decoder_outputs = decoder(decoder_inputs, mask=mask)
             output_logits[output_feature_name] = decoder_outputs
-            output_last_hidden[output_feature_name] = decoder_outputs[
-                'last_hidden']
+            output_last_hidden[output_feature_name] = decoder_outputs.last_hidden
 
         return output_logits
 
